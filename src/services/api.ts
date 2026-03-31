@@ -205,7 +205,6 @@ export async function getSP500Screener(): Promise<SP500Row[]> {
         ma50: pos['day50MovingAverage'] ?? 0,
         ma100: pos['day100MovingAverage'] ?? 0,
         ma200: pos['day200MovingAverage'] ?? 0,
-        analyst: 'Unknown',
         metrics: {
           pe: pos['ttmPE'] ?? 0,
           pb: pos['pbRatio'] ?? 0,

@@ -31,7 +31,6 @@ export interface SP500Row {
   ma50: number;
   ma100: number;
   ma200: number;
-  analyst: string;
   metrics: AssetMetrics;
   analystRating: { buy: number; hold: number; sell: number; consensus: string };
 }

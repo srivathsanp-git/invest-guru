@@ -334,13 +334,13 @@ const App = () => {
           <table className="screener">
             <thead>
               <tr>
-                <th>Symbol</th><th>Price</th><th>52w High</th><th>52w Low</th><th>MA50</th><th>MA100</th><th>MA200</th><th>Analyst</th>
+                <th>Symbol</th><th>Price</th><th>52w High</th><th>52w Low</th><th>MA50</th><th>MA100</th><th>MA200</th>
               </tr>
             </thead>
             <tbody>
               {screened.map((row) => (
                 <tr key={row.symbol} className={row.price < row.ma50 ? 'negative-row' : 'positive-row'}>
-                  <td>{row.symbol}</td><td>{row.price}</td><td>{row.week52High}</td><td>{row.week52Low}</td><td>{row.ma50}</td><td>{row.ma100}</td><td>{row.ma200}</td><td>{row.analyst}</td>
+                  <td>{row.symbol}</td><td>{row.price}</td><td>{row.week52High}</td><td>{row.week52Low}</td><td>{row.ma50}</td><td>{row.ma100}</td><td>{row.ma200}</td>
                 </tr>
               ))}
             </tbody>
