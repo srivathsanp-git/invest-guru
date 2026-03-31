@@ -32,6 +32,8 @@ export interface SP500Row {
   ma100: number;
   ma200: number;
   analyst: string;
+  metrics: AssetMetrics;
+  analystRating: { buy: number; hold: number; sell: number; consensus: string };
 }
 
 export interface AssetData {
@@ -48,6 +50,6 @@ export interface AssetData {
   metrics: AssetMetrics;
   analystRating: { buy: number; hold: number; sell: number; consensus: string };
   insiderTrades: Array<{ date: string; insider: string; type: 'Buy' | 'Sell'; shares: number; value: number }>;
-  performance: { '1m': number; '3m': number; '1y': number; '5y': number; lifetime: number };
+  performance: Record<'1m' | '3m' | 'ytd' | '1y' | '5y' | 'lifetime', number>;
   history: PerformancePoint[];
 }

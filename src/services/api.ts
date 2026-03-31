@@ -73,6 +73,7 @@ const createMockAsset = (symbol: string): AssetData => {
     performance: {
       '1m': parseFloat(((history[history.length - 1].close / history[0].close - 1) * 100).toFixed(2)),
       '3m': parseFloat(((history[history.length - 1].close / (history[0].close * 0.8) - 1) * 100).toFixed(2)),
+      'ytd': parseFloat(((history[history.length - 1].close / history[0].close - 1) * 100).toFixed(2)),
       '1y': parseFloat((Math.random() * 40).toFixed(2)),
       '5y': parseFloat((Math.random() * 160).toFixed(2)),
       lifetime: parseFloat((Math.random() * 1900).toFixed(2))
@@ -170,6 +171,7 @@ export async function getAssetData(symbol: string): Promise<AssetData> {
       performance: {
         '1m': calcReturn(history, 0.083),
         '3m': calcReturn(history, 0.25),
+        'ytd': calcReturn(history, 0.2),
         '1y': calcReturn(history, 1),
         '5y': calcReturn(history, 5),
         lifetime: calcReturn(history, 10)
@@ -203,7 +205,21 @@ export async function getSP500Screener(): Promise<SP500Row[]> {
         ma50: pos['day50MovingAverage'] ?? 0,
         ma100: pos['day100MovingAverage'] ?? 0,
         ma200: pos['day200MovingAverage'] ?? 0,
-        analyst: 'Unknown'
+        analyst: 'Unknown',
+        metrics: {
+          pe: pos['ttmPE'] ?? 0,
+          pb: pos['pbRatio'] ?? 0,
+          roe: pos['roe'] ?? 0,
+          dividendYield: pos['dividendYield'] ?? 0,
+          marketCap: pos['marketCapitalization'] ?? 0,
+          expenseRatio: 0
+        },
+        analystRating: {
+          buy: 0,
+          hold: 0,
+          sell: 0,
+          consensus: 'Unknown'
+        }
       } as SP500Row;
     });
 
