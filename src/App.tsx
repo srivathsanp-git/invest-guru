@@ -34,6 +34,7 @@ const App = () => {
     return stored ? JSON.parse(stored) : ['AAPL', 'MSFT'];
   });
   const [low52List, setLow52List] = useState<SP500Row[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<string>('');
   const [low52GeneratedAt, setLow52GeneratedAt] = useState<string>('');
 
   useEffect(() => {
@@ -48,21 +49,23 @@ const App = () => {
     }
   }, [screener, view]);
 
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [assetData, sp500Data] = await Promise.all([getAssetData(symbol), getSP500Screener()]);
+      setAsset(assetData);
+      setScreener(sp500Data);
+      setLastUpdated(new Date().toLocaleString());
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [assetData, sp500Data] = await Promise.all([getAssetData(symbol), getSP500Screener()]);
-        setAsset(assetData);
-        setScreener(sp500Data);
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    loadData();
   }, [symbol]);
 
   const screened = useMemo(() => {
@@ -134,9 +137,13 @@ const App = () => {
           <button type="submit" style={{ padding: '0.55rem 0.9rem', borderRadius: '0.5rem', border: 'none', background: '#0ea5e9', color: '#ffffff' }}>
             Load
           </button>
+          <button type="button" onClick={loadData} disabled={loading} style={{ padding: '0.55rem 0.9rem', borderRadius: '0.5rem', border: '1px solid #334155', background: '#1e293b', color: '#e2e8f0', cursor: loading ? 'not-allowed' : 'pointer' }}>
+            Refresh
+          </button>
         </form>
         {loading && <p>Loading data for {symbol}…</p>}
         {error && <p style={{ color: '#f87171' }}>Error: {error}</p>}
+        {lastUpdated && <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>Last updated: {lastUpdated}</p>}
       </section>
 
       <main>

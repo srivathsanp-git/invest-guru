@@ -13,79 +13,79 @@ export const sampleAsset: AssetData = {
   symbol: 'AAPL',
   name: 'Apple Inc.',
   type: 'Stock',
-  price: 186.23,
+  price: 250.45,
   change: 1.37,
-  week52High: 198.23,
-  week52Low: 130.08,
-  ma50: 188.45,
-  ma100: 175.12,
-  ma200: 164.50,
+  week52High: 280.23,
+  week52Low: 180.08,
+  ma50: 255.45,
+  ma100: 240.12,
+  ma200: 220.50,
   metrics: {
-    pe: 27.4,
-    pb: 27.3,
-    roe: 47.5,
-    dividendYield: 0.5,
-    marketCap: 2.95e12,
+    pe: 28.4,
+    pb: 30.3,
+    roe: 48.5,
+    dividendYield: 0.6,
+    marketCap: 3.85e12,
     expenseRatio: 0.0
   },
   analystRating: {
-    buy: 28,
-    hold: 9,
-    sell: 2,
+    buy: 30,
+    hold: 8,
+    sell: 1,
     consensus: 'Buy'
   },
   insiderTrades: [
-    { date: '2026-03-18', insider: 'Tim Cook', type: 'Buy', shares: 10000, value: 1800000 },
-    { date: '2026-02-10', insider: 'CFO', type: 'Sell', shares: 8000, value: 1480000 }
+    { date: '2026-03-18', insider: 'Tim Cook', type: 'Buy', shares: 10000, value: 2500000 },
+    { date: '2026-02-10', insider: 'CFO', type: 'Sell', shares: 8000, value: 2000000 }
   ],
   performance: {
-    '1m': 4.2,
-    '3m': 8.9,
-    'ytd': 12.1,
-    '1y': 19.7,
-    '5y': 150.8,
-    lifetime: 1000.6
+    '1m': 5.2,
+    '3m': 10.9,
+    'ytd': 15.1,
+    '1y': 22.7,
+    '5y': 180.8,
+    lifetime: 1200.6
   },
   history: [
-    { date: '2025-12-31', close: 165 },
-    { date: '2026-01-31', close: 170 },
-    { date: '2026-02-28', close: 178 },
-    { date: '2026-03-31', close: 186.23 }
+    { date: '2025-12-31', close: 220 },
+    { date: '2026-01-31', close: 235 },
+    { date: '2026-02-28', close: 245 },
+    { date: '2026-03-31', close: 250.45 }
   ]
 };
 
 export const sp500Screen: SP500Row[] = [
   {
     symbol: 'AAPL',
-    price: 186.23,
-    week52High: 198.23,
-    week52Low: 130.08,
-    ma50: 188.45,
-    ma100: 175.12,
-    ma200: 164.5,
-    metrics: { pe: 27.4, pb: 27.3, roe: 47.5, dividendYield: 0.5, marketCap: 2.95e12, expenseRatio: 0.0 },
-    analystRating: { buy: 28, hold: 9, sell: 2, consensus: 'Buy' }
+    price: 250.45,
+    week52High: 280.23,
+    week52Low: 180.08,
+    ma50: 255.45,
+    ma100: 240.12,
+    ma200: 220.50,
+    metrics: { pe: 28.4, pb: 30.3, roe: 48.5, dividendYield: 0.6, marketCap: 3.85e12, expenseRatio: 0.0 },
+    analystRating: { buy: 30, hold: 8, sell: 1, consensus: 'Buy' }
   },
   {
     symbol: 'MSFT',
-    price: 418.75,
-    week52High: 464.29,
-    week52Low: 305.22,
-    ma50: 420.19,
-    ma100: 401.1,
-    ma200: 370.8,
-    metrics: { pe: 33.2, pb: 13.5, roe: 43.1, dividendYield: 0.7, marketCap: 3.1e12, expenseRatio: 0.0 },
-    analystRating: { buy: 25, hold: 14, sell: 3, consensus: 'Buy' }
+    price: 450.75,
+    week52High: 500.29,
+    week52Low: 350.22,
+    ma50: 455.19,
+    ma100: 435.10,
+    ma200: 400.80,
+    metrics: { pe: 35.2, pb: 14.5, roe: 45.1, dividendYield: 0.8, marketCap: 3.35e12, expenseRatio: 0.0 },
+    analystRating: { buy: 27, hold: 12, sell: 2, consensus: 'Buy' }
   },
   {
     symbol: 'TSLA',
-    price: 225.33,
-    week52High: 299.0,
-    week52Low: 124.22,
-    ma50: 245.12,
-    ma100: 231.4,
-    ma200: 207.1,
-    metrics: { pe: 70.1, pb: 14.2, roe: 13.8, dividendYield: 0.0, marketCap: 0.8e12, expenseRatio: 0.0 },
-    analystRating: { buy: 22, hold: 10, sell: 5, consensus: 'Hold' }
+    price: 320.33,
+    week52High: 400.00,
+    week52Low: 180.22,
+    ma50: 330.12,
+    ma100: 310.40,
+    ma200: 280.10,
+    metrics: { pe: 75.1, pb: 15.2, roe: 14.8, dividendYield: 0.0, marketCap: 1.0e12, expenseRatio: 0.0 },
+    analystRating: { buy: 24, hold: 12, sell: 4, consensus: 'Hold' }
   }
 ];
