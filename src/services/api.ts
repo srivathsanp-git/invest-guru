@@ -25,9 +25,65 @@ const calcReturn = (history: Array<{ date: string; close: number }>, years: numb
   return start <= 0 ? 0 : parseFloat((((last / start - 1) * 100)).toFixed(2));
 };
 
+const createMockAsset = (symbol: string): AssetData => {
+  const lower = symbol.toUpperCase();
+  const sample = sp500Screen.find((row) => row.symbol === lower) ?? sp500Screen[0];
+  const price = sample.price * (0.9 + Math.random() * 0.2);
+  const change = parseFloat(((Math.random() - 0.5) * 4).toFixed(2));
+  const week52Low = sample.week52Low || Math.max(5, price * 0.75);
+  const week52High = sample.week52High || Math.max(20, price * 1.25);
+  const ma50 = parseFloat((price * (0.96 + Math.random() * 0.08)).toFixed(2));
+  const ma100 = parseFloat((price * (0.92 + Math.random() * 0.08)).toFixed(2));
+  const ma200 = parseFloat((price * (0.88 + Math.random() * 0.10)).toFixed(2));
+
+  const history = Array.from({ length: 30 }, (_, i) => {
+    const v = price * (0.9 + (i / 30) * 0.2 + (Math.random() - 0.5) * 0.03);
+    return { date: `2026-03-${(i + 1).toString().padStart(2, '0')}`, close: parseFloat(v.toFixed(2)), ma50, ma100, ma200 };
+  });
+
+  return {
+    symbol: lower,
+    name: `${lower} Corp`,
+    type: 'Stock',
+    price,
+    change,
+    week52High,
+    week52Low,
+    ma50,
+    ma100,
+    ma200,
+    metrics: {
+      pe: parseFloat((10 + Math.random() * 30).toFixed(2)),
+      pb: parseFloat((1 + Math.random() * 9).toFixed(2)),
+      roe: parseFloat((5 + Math.random() * 25).toFixed(2)),
+      dividendYield: parseFloat((Math.random() * 4).toFixed(2)),
+      marketCap: sample.price * 1000000,
+      expenseRatio: 0
+    },
+    analystRating: {
+      buy: Math.floor(10 + Math.random() * 20),
+      hold: Math.floor(2 + Math.random() * 10),
+      sell: Math.floor(Math.random() * 5),
+      consensus: 'Buy'
+    },
+    insiderTrades: [
+      { date: '2026-03-28', insider: 'Exec 1', type: 'Buy', shares: 2500, value: 2500 * price },
+      { date: '2026-03-10', insider: 'Exec 2', type: 'Sell', shares: 1200, value: 1200 * price }
+    ],
+    performance: {
+      '1m': parseFloat(((history[history.length - 1].close / history[0].close - 1) * 100).toFixed(2)),
+      '3m': parseFloat(((history[history.length - 1].close / (history[0].close * 0.8) - 1) * 100).toFixed(2)),
+      '1y': parseFloat((Math.random() * 40).toFixed(2)),
+      '5y': parseFloat((Math.random() * 160).toFixed(2)),
+      lifetime: parseFloat((Math.random() * 1900).toFixed(2))
+    },
+    history
+  };
+};
+
 export async function getAssetData(symbol: string): Promise<AssetData> {
   if (!FINNHUB_API_KEY) {
-    return normalizeAsset(sampleAsset, symbol);
+    return createMockAsset(symbol);
   }
 
   try {

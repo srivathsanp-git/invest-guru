@@ -23,6 +23,7 @@ const App = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState<TimeframeKey>('1y');
   const [screener, setScreener] = useState<SP500Row[]>([]);
   const [show52w, setShow52w] = useState(true);
+  const [view, setView] = useState<'dashboard' | 'low52'>('dashboard');
   const [symbol, setSymbol] = useState('AAPL');
   const [query, setQuery] = useState('AAPL');
   const [loading, setLoading] = useState(false);
@@ -88,6 +89,17 @@ const App = () => {
         <p>Multi-asset performance + S&P comparison dashboard</p>
       </header>
 
+      <div style={{ display: 'flex', gap: '0.7rem', marginBottom: '0.7rem', textAlign:'center' }}>
+        <button
+          onClick={() => setView('dashboard')}
+          style={{ flex:1, padding:'0.6rem', borderRadius:'8px', border:'1px solid #334155', background: view==='dashboard' ? '#0ea5e9' : '#1e293b', color:'#ffffff' }}
+        >Dashboard</button>
+        <button
+          onClick={() => setView('low52')}
+          style={{ flex:1, padding:'0.6rem', borderRadius:'8px', border:'1px solid #334155', background: view==='low52' ? '#0ea5e9' : '#1e293b', color:'#ffffff' }}
+        >S&P 52w Low/Close</button>
+      </div>
+
       <section className="card">
         <form onSubmit={onSearch} className="search-form" style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
           <input
@@ -106,7 +118,33 @@ const App = () => {
       </section>
 
       <main>
-        <section className="card grid-2">
+        {view === 'low52' ? (
+          <section className="card">
+            <h3>S&P 500 near/below 52-week low</h3>
+            <p style={{ color:'#94a3b8', margin:'0.4rem 0 0.8rem' }}>Showing symbols close to or below their 52-week low condition</p>
+            <table>
+              <thead>
+                <tr><th>Symbol</th><th>Price</th><th>52w Low</th><th>52w High</th><th>MA50</th><th>Analyst</th></tr>
+              </thead>
+              <tbody>
+                {screener
+                  .filter((item) => item.price <= item.week52Low * 1.05)
+                  .map((item) => (
+                    <tr key={item.symbol} className={item.price <= item.week52Low ? 'negative-row' : ''}>
+                      <td>{item.symbol}</td>
+                      <td>{item.price.toFixed(2)}</td>
+                      <td>{item.week52Low.toFixed(2)}</td>
+                      <td>{item.week52High.toFixed(2)}</td>
+                      <td>{item.ma50.toFixed(2)}</td>
+                      <td>{item.analyst}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </section>
+        ) : (
+          <>
+          <section className="card grid-2">
           <div className="card-block">
             <h2>{asset.symbol} — {asset.name}</h2>
             <div className="price">
@@ -264,6 +302,8 @@ const App = () => {
             </tbody>
           </table>
         </section>
+        </>
+        )}
       </main>
 
       <footer className="footer">Built for mobile and desktop, with responsive graph and metric tooltips.</footer>
