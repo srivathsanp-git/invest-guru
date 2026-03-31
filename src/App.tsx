@@ -4,7 +4,7 @@ import { sampleAsset, metricDefinitions } from './data/mockData';
 import { AssetData, MetricDefinition, SP500Row } from './types';
 import { getAssetData, getSP500Screener } from './services/api';
 
-const timeframes = ['1m', '3m', '1y', '5y', 'lifetime'] as const;
+const timeframes = ['1m', '3m', 'ytd', '1y', '5y', 'lifetime'] as const;
 type TimeframeKey = typeof timeframes[number];
 
 const metricTooltip = (metric: MetricDefinition) => `${metric.label}: ${metric.description}`;
@@ -33,10 +33,20 @@ const App = () => {
     const stored = window.localStorage.getItem('investGuruWatchlist');
     return stored ? JSON.parse(stored) : ['AAPL', 'MSFT'];
   });
+  const [low52List, setLow52List] = useState<SP500Row[]>([]);
+  const [low52GeneratedAt, setLow52GeneratedAt] = useState<string>('');
 
   useEffect(() => {
     window.localStorage.setItem('investGuruWatchlist', JSON.stringify(watchlist));
   }, [watchlist]);
+
+  useEffect(() => {
+    if (view === 'low52') {
+      const generated = screener.filter((item) => item.price <= item.week52Low * 1.05);
+      setLow52List(generated);
+      setLow52GeneratedAt(new Date().toLocaleString());
+    }
+  }, [screener, view]);
 
   useEffect(() => {
     const load = async () => {
@@ -65,6 +75,18 @@ const App = () => {
   }, [screener, show52w]);
 
   const comp = rankComparison(asset);
+
+  const chartHistory = useMemo(() => {
+    let data = asset.history;
+    if (selectedTimeframe === 'ytd') {
+      // Filter to current year (2026) dates
+      data = data.filter(point => point.date >= '2026-01-01');
+    } else {
+      const lw = selectedTimeframe === '1m' ? 30 : selectedTimeframe === '3m' ? 90 : selectedTimeframe === '1y' ? 250 : selectedTimeframe === '5y' ? 1250 : asset.history.length;
+      data = data.slice(-lw);
+    }
+    return data;
+  }, [asset.history, selectedTimeframe]);
 
   const alerts = useMemo(() => {
     const items = [] as string[];
@@ -121,24 +143,40 @@ const App = () => {
         {view === 'low52' ? (
           <section className="card">
             <h3>S&P 500 near/below 52-week low</h3>
-            <p style={{ color:'#94a3b8', margin:'0.4rem 0 0.8rem' }}>Showing symbols close to or below their 52-week low condition</p>
+            <p style={{ color:'#94a3b8', margin:'0.4rem 0 0.8rem' }}>Auto-updated list of candidates (refreshes when data updates).</p>
+            <button
+              onClick={() => {
+                const generated = screener.filter((item) => item.price <= item.week52Low * 1.05);
+                setLow52List(generated);
+                setLow52GeneratedAt(new Date().toLocaleString());
+              }}
+              style={{ marginBottom: '0.8rem', padding: '0.6rem 0.85rem', borderRadius: '0.5rem', border: '1px solid #334155', background: '#0ea5e9', color: '#fff', cursor: 'pointer' }}
+            >
+              Refresh list
+            </button>
+            {low52GeneratedAt && <p style={{ color: '#94a3b8', margin: '0 0 0.6rem' }}>Generated: {low52GeneratedAt}</p>}
             <table>
               <thead>
-                <tr><th>Symbol</th><th>Price</th><th>52w Low</th><th>52w High</th><th>MA50</th><th>Analyst</th></tr>
+                <tr>
+                  <th>Symbol</th><th>Price</th><th>52w Low</th><th>52w High</th><th>MA50</th><th>P/E</th><th>ROE</th><th>Analyst</th>
+                </tr>
               </thead>
               <tbody>
-                {screener
-                  .filter((item) => item.price <= item.week52Low * 1.05)
-                  .map((item) => (
-                    <tr key={item.symbol} className={item.price <= item.week52Low ? 'negative-row' : ''}>
-                      <td>{item.symbol}</td>
-                      <td>{item.price.toFixed(2)}</td>
-                      <td>{item.week52Low.toFixed(2)}</td>
-                      <td>{item.week52High.toFixed(2)}</td>
-                      <td>{item.ma50.toFixed(2)}</td>
-                      <td>{item.analyst}</td>
-                    </tr>
-                  ))}
+                {low52List.map((item) => (
+                  <tr key={item.symbol} className={item.price <= item.week52Low ? 'negative-row' : ''}>
+                    <td>{item.symbol}</td>
+                    <td>{item.price.toFixed(2)}</td>
+                    <td>{item.week52Low.toFixed(2)}</td>
+                    <td>{item.week52High.toFixed(2)}</td>
+                    <td>{item.ma50.toFixed(2)}</td>
+                    <td>{item.metrics.pe.toFixed(1)}</td>
+                    <td>{item.metrics.roe.toFixed(1)}%</td>
+                    <td>{item.analystRating.consensus}</td>
+                  </tr>
+                ))}
+                {low52List.length === 0 && (
+                  <tr><td colSpan={8} style={{ textAlign: 'center', padding: '0.6rem' }}>No list generated yet. Click Generate to produce the data.</td></tr>
+                )}
               </tbody>
             </table>
           </section>
@@ -210,15 +248,21 @@ const App = () => {
           <h3>Price history & moving averages</h3>
           <div className="chart">
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={asset.history} margin={{ top: 10, right: 18, left: 0, bottom: 0 }}>
+              <LineChart data={chartHistory} margin={{ top: 10, right: 18, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
                 <Tooltip />
                 <Line type="monotone" dataKey="close" stroke="#0ea5e9" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="ma50" stroke="#facc15" strokeWidth={1} dot={false} strokeDasharray="4 2" />
-                <Line type="monotone" dataKey="ma100" stroke="#a78bfa" strokeWidth={1} dot={false} strokeDasharray="4 2" />
-                <Line type="monotone" dataKey="ma200" stroke="#22c55e" strokeWidth={1} dot={false} strokeDasharray="4 2" />
+                {(selectedTimeframe === 'ytd' || selectedTimeframe === '1y' || selectedTimeframe === '5y' || selectedTimeframe === 'lifetime') && (
+                  <Line type="monotone" dataKey="ma50" stroke="#facc15" strokeWidth={1} dot={false} strokeDasharray="4 2" />
+                )}
+                {(selectedTimeframe === '1y' || selectedTimeframe === '5y' || selectedTimeframe === 'lifetime') && (
+                  <Line type="monotone" dataKey="ma100" stroke="#a78bfa" strokeWidth={1} dot={false} strokeDasharray="4 2" />
+                )}
+                {(selectedTimeframe === '5y' || selectedTimeframe === 'lifetime') && (
+                  <Line type="monotone" dataKey="ma200" stroke="#22c55e" strokeWidth={1} dot={false} strokeDasharray="4 2" />
+                )}
               </LineChart>
             </ResponsiveContainer>
           </div>
