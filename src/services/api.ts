@@ -88,30 +88,45 @@ export async function getAssetData(symbol: string): Promise<AssetData> {
     // Fetch chart data from Yahoo Finance v8 endpoint (more reliable)
     const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1y`;
     
-    const chartRes = await safeFetch<any>(chartUrl);
+    const response = await fetch(chartUrl);
+    if (!response.ok) {
+      console.warn('API request failed with status:', response.status);
+      return createMockAsset(symbol);
+    }
+    
+    const chartRes = await response.json();
     const chartData = chartRes.chart?.result?.[0];
     
     if (!chartData) {
-      console.warn('No chart data from Yahoo Finance, using mock data');
+      console.warn('No chart data from Yahoo Finance');
       return createMockAsset(symbol);
     }
 
     const meta = chartData.meta || {};
+    console.log('Meta data:', meta);
+    
     const timestamps = chartData.timestamp || [];
     const closes = chartData.indicators?.quote?.[0]?.close || [];
     
-    const currentPrice = parseFloat((meta.regularMarketPrice || 100).toFixed(2));
+    const currentPrice = meta.regularMarketPrice;
+    console.log('Current price from meta:', currentPrice);
+    
+    if (!currentPrice || currentPrice <= 0) {
+      console.warn('Invalid price from API:', currentPrice);
+      return createMockAsset(symbol);
+    }
+    
     const previousClose = meta.previousClose || currentPrice;
     const change = parseFloat(((currentPrice - previousClose) / previousClose * 100).toFixed(2));
 
     // Parse historical prices
     const history = timestamps.map((ts: number, i: number) => ({
       date: new Date(ts * 1000).toISOString().split('T')[0],
-      close: parseFloat((closes[i] || currentPrice).toFixed(2))
+      close: closes[i] || currentPrice
     }));
 
     // Calculate moving averages
-    const closesArray = closes.filter((c: any) => c !== null).map((c: number) => parseFloat(c.toFixed(2)));
+    const closesArray = closes.filter((c: any) => c !== null);
     const ma50 = closesArray.length >= 50 
       ? parseFloat((closesArray.slice(-50).reduce((a: number, b: number) => a + b, 0) / 50).toFixed(2))
       : currentPrice;
@@ -124,9 +139,9 @@ export async function getAssetData(symbol: string): Promise<AssetData> {
 
     const result: AssetData = {
       symbol,
-      name: `${symbol} Inc.`,
+      name: meta.longName || `${symbol} Inc.`,
       type: 'Stock',
-      price: currentPrice,
+      price: parseFloat(currentPrice.toFixed(2)),
       change,
       week52High: parseFloat((meta.fiftyTwoWeekHigh || currentPrice * 1.2).toFixed(2)),
       week52Low: parseFloat((meta.fiftyTwoWeekLow || currentPrice * 0.8).toFixed(2)),
@@ -167,7 +182,7 @@ export async function getAssetData(symbol: string): Promise<AssetData> {
     console.log('Successfully fetched data for', symbol, '- Current price:', result.price);
     return result;
   } catch (error) {
-    console.warn('Yahoo Finance fetch failed, using mock data:', error);
+    console.warn('Yahoo Finance fetch failed:', error);
     return createMockAsset(symbol);
   }
 }
