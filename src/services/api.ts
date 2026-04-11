@@ -2,7 +2,7 @@ import { AssetData, SP500Row } from '../types';
 import { sampleAsset, sp500Screen } from '../data/mockData';
 
 // Using free Yahoo Finance API - no auth required
-const YAHOO_BASE = 'https://query1.finance.yahoo.com/v10/finance';
+
 
 const normalizeAsset = (template: AssetData, symbol: string): AssetData => ({
   ...template,
@@ -85,45 +85,33 @@ export async function getAssetData(symbol: string): Promise<AssetData> {
   try {
     console.log('Fetching live data from Yahoo Finance for:', symbol);
     
-    // Fetch quote and historical data from Yahoo Finance
-    const quoteUrl = `${YAHOO_BASE}/quoteSummary/${symbol}?modules=price,summaryDetail,defaultKeyStatistics`;
-    const chartUrl = `${YAHOO_BASE}/chart/${symbol}?interval=1d&range=1y&events=history`;
+    // Fetch chart data from Yahoo Finance v8 endpoint (more reliable)
+    const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1y`;
     
-    const [quoteRes, chartRes] = await Promise.all([
-      safeFetch<any>(quoteUrl),
-      safeFetch<any>(chartUrl)
-    ]);
-
-    const quoteData = quoteRes.quoteSummary?.result?.[0];
+    const chartRes = await safeFetch<any>(chartUrl);
     const chartData = chartRes.chart?.result?.[0];
     
-    if (!quoteData || !chartData) {
-      console.warn('Incomplete data from Yahoo Finance, using mock data');
+    if (!chartData) {
+      console.warn('No chart data from Yahoo Finance, using mock data');
       return createMockAsset(symbol);
     }
 
-    const priceData = quoteData.price || {};
-    const summaryData = quoteData.summaryDetail || {};
-    const statsData = quoteData.defaultKeyStatistics || {};
-    
-    const currentPrice = priceData.currentPrice?.raw || priceData.regularMarketPrice?.raw || 100;
-    const change = priceData.regularMarketChange?.raw || 0;
-    const dayChange = priceData.regularMarketChangePercent?.raw || 0;
-    
-    // Parse historical prices
+    const meta = chartData.meta || {};
     const timestamps = chartData.timestamp || [];
     const closes = chartData.indicators?.quote?.[0]?.close || [];
-    const opens = chartData.indicators?.quote?.[0]?.open || [];
-    const highs = chartData.indicators?.quote?.[0]?.high || [];
-    const lows = chartData.indicators?.quote?.[0]?.low || [];
     
+    const currentPrice = parseFloat((meta.regularMarketPrice || 100).toFixed(2));
+    const previousClose = meta.previousClose || currentPrice;
+    const change = parseFloat(((currentPrice - previousClose) / previousClose * 100).toFixed(2));
+
+    // Parse historical prices
     const history = timestamps.map((ts: number, i: number) => ({
       date: new Date(ts * 1000).toISOString().split('T')[0],
       close: parseFloat((closes[i] || currentPrice).toFixed(2))
     }));
 
     // Calculate moving averages
-    const closesArray = closes.filter((c: any) => c !== null);
+    const closesArray = closes.filter((c: any) => c !== null).map((c: number) => parseFloat(c.toFixed(2)));
     const ma50 = closesArray.length >= 50 
       ? parseFloat((closesArray.slice(-50).reduce((a: number, b: number) => a + b, 0) / 50).toFixed(2))
       : currentPrice;
@@ -136,21 +124,21 @@ export async function getAssetData(symbol: string): Promise<AssetData> {
 
     const result: AssetData = {
       symbol,
-      name: priceData.longName || symbol,
+      name: `${symbol} Inc.`,
       type: 'Stock',
-      price: parseFloat(currentPrice.toFixed(2)),
-      change: parseFloat(change.toFixed(2)),
-      week52High: parseFloat((summaryData.fiftyTwoWeekHigh?.raw || currentPrice * 1.2).toFixed(2)),
-      week52Low: parseFloat((summaryData.fiftyTwoWeekLow?.raw || currentPrice * 0.8).toFixed(2)),
+      price: currentPrice,
+      change,
+      week52High: parseFloat((meta.fiftyTwoWeekHigh || currentPrice * 1.2).toFixed(2)),
+      week52Low: parseFloat((meta.fiftyTwoWeekLow || currentPrice * 0.8).toFixed(2)),
       ma50,
       ma100,
       ma200,
       metrics: {
-        pe: parseFloat((statsData.trailingPE?.raw || 0).toFixed(2)),
-        pb: parseFloat((statsData.priceToBook?.raw || 0).toFixed(2)),
-        roe: parseFloat((statsData.returnOnEquity?.raw || 0).toFixed(2)) * 100,
-        dividendYield: parseFloat((summaryData.dividendYield?.raw || 0).toFixed(2)) * 100,
-        marketCap: summaryData.marketCap?.raw || 0,
+        pe: parseFloat((meta.trailingPE || 0).toFixed(2)),
+        pb: 0,
+        roe: 0,
+        dividendYield: 0,
+        marketCap: meta.marketCap || 0,
         expenseRatio: 0
       },
       analystRating: {
