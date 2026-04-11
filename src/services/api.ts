@@ -90,43 +90,58 @@ export async function getAssetData(symbol: string): Promise<AssetData> {
 
   try {
     const overviewUrl = `${ALPHAVANTAGE_BASE}?function=OVERVIEW&symbol=${symbol}&apikey=${ALPHAVANTAGE_API_KEY}`;
-    const dailyUrl = `${ALPHAVANTAGE_BASE}?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&outputsize=full&apikey=${ALPHAVANTAGE_API_KEY}`;
+    const quoteUrl = `${ALPHAVANTAGE_BASE}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHAVANTAGE_API_KEY}`;
+    const dailyUrl = `${ALPHAVANTAGE_BASE}?function=TIME_SERIES_DAILY&symbol=${symbol}&outputsize=compact&apikey=${ALPHAVANTAGE_API_KEY}`;
 
-    const [overviewRes, dailyRes] = await Promise.all([
+    const [overviewRes, quoteRes, dailyRes] = await Promise.all([
       safeFetch<any>(overviewUrl),
+      safeFetch<any>(quoteUrl),
       safeFetch<any>(dailyUrl)
     ]);
 
-    if (overviewRes.Note || overviewRes['Error Message'] || dailyRes.Note || dailyRes['Error Message']) {
-      throw new Error(overviewRes.Note || overviewRes['Error Message'] || dailyRes.Note || dailyRes['Error Message']);
-    }
-
+    const quoteData = quoteRes['Global Quote'] || {};
     const timeSeries = dailyRes['Time Series (Daily)'];
-    if (!timeSeries) {
-      throw new Error('Alpha Vantage returned no daily series for ' + symbol);
+
+    const quoteError = quoteRes.Note || quoteRes['Error Message'];
+    const dailyError = dailyRes.Note || dailyRes['Error Message'];
+    const overviewError = overviewRes.Note || overviewRes['Error Message'];
+
+    if (quoteError) {
+      throw new Error(quoteError);
     }
 
-    const historyDates = Object.keys(timeSeries).sort((a, b) => a.localeCompare(b));
-    const history = historyDates.map((date) => ({
-      date,
-      close: parseFloat(timeSeries[date]['4. close'])
-    }));
+    const latestPrice = parseFloat(quoteData['05. price'] || '0');
+    const previousClose = parseFloat(quoteData['08. previous close'] || '0');
+    const currentPrice = latestPrice > 0 ? latestPrice : 0;
+
+    let history = [] as Array<{ date: string; close: number }>;
+    if (timeSeries && Object.keys(timeSeries).length) {
+      const historyDates = Object.keys(timeSeries).sort((a, b) => a.localeCompare(b));
+      history = historyDates.map((date) => ({
+        date,
+        close: parseFloat(timeSeries[date]['4. close'])
+      }));
+    }
+
+    if (!history.length && currentPrice > 0) {
+      history = [{ date: new Date().toISOString().split('T')[0], close: currentPrice }];
+    }
 
     const latest = history[history.length - 1];
-    const previous = history[history.length - 2] || latest;
-    const currentPrice = latest.close;
-    const change = parseFloat((((currentPrice - previous.close) / previous.close) * 100).toFixed(2));
+    const previous = history.length > 1 ? history[history.length - 2] : latest;
+    const effectiveCurrentPrice = currentPrice > 0 ? currentPrice : latest?.close || 0;
+    const effectivePrevious = previous.close || effectiveCurrentPrice;
+    const change = effectivePrevious > 0 ? parseFloat((((effectiveCurrentPrice - effectivePrevious) / effectivePrevious) * 100).toFixed(2)) : 0;
 
     const recent = history.slice(-252);
-    const week52High = parseFloat(Math.max(...recent.map((item) => item.close)).toFixed(2));
-    const week52Low = parseFloat(Math.min(...recent.map((item) => item.close)).toFixed(2));
-
     const closes = history.map((item) => item.close);
-    const ma50 = closes.length >= 50 ? parseFloat((closes.slice(-50).reduce((a, b) => a + b, 0) / 50).toFixed(2)) : currentPrice;
-    const ma100 = closes.length >= 100 ? parseFloat((closes.slice(-100).reduce((a, b) => a + b, 0) / 100).toFixed(2)) : currentPrice;
-    const ma200 = closes.length >= 200 ? parseFloat((closes.slice(-200).reduce((a, b) => a + b, 0) / 200).toFixed(2)) : currentPrice;
+    const week52High = closes.length ? parseFloat(Math.max(...recent.map((item) => item.close)).toFixed(2)) : effectiveCurrentPrice;
+    const week52Low = closes.length ? parseFloat(Math.min(...recent.map((item) => item.close)).toFixed(2)) : effectiveCurrentPrice;
+    const ma50 = closes.length >= 50 ? parseFloat((closes.slice(-50).reduce((a, b) => a + b, 0) / 50).toFixed(2)) : effectiveCurrentPrice;
+    const ma100 = closes.length >= 100 ? parseFloat((closes.slice(-100).reduce((a, b) => a + b, 0) / 100).toFixed(2)) : effectiveCurrentPrice;
+    const ma200 = closes.length >= 200 ? parseFloat((closes.slice(-200).reduce((a, b) => a + b, 0) / 200).toFixed(2)) : effectiveCurrentPrice;
 
-    const name = overviewRes.Name || `${symbol} Inc.`;
+    const name = overviewRes.Name || quoteData['01. symbol'] || `${symbol} Inc.`;
     const pe = parseFloat(overviewRes.PERatio || '0');
     const pb = parseFloat(overviewRes.PriceToBookRatio || '0');
     const roe = parseFloat(overviewRes.ReturnOnEquityTTM || '0');
@@ -137,7 +152,7 @@ export async function getAssetData(symbol: string): Promise<AssetData> {
       symbol,
       name,
       type: 'Stock',
-      price: currentPrice,
+      price: effectiveCurrentPrice,
       change,
       week52High,
       week52Low,
