@@ -1,7 +1,7 @@
 import { AssetData, SP500Row } from '../types';
 import { sampleAsset, sp500Screen } from '../data/mockData';
 
-const FMP_API_KEY = (import.meta as any).env?.VITE_FMP_API_KEY;
+const FMP_API_KEY = import.meta.env.VITE_FMP_API_KEY;
 const FMP_BASE = 'https://financialmodelingprep.com/api/v3';
 
 const normalizeAsset = (template: AssetData, symbol: string): AssetData => ({
@@ -82,11 +82,16 @@ const createMockAsset = (symbol: string): AssetData => {
 };
 
 export async function getAssetData(symbol: string): Promise<AssetData> {
+  console.log('getAssetData called with symbol:', symbol);
+  console.log('FMP_API_KEY available:', !!FMP_API_KEY);
+  
   if (!FMP_API_KEY) {
+    console.log('No API key, generating mock data for:', symbol);
     return createMockAsset(symbol);
   }
 
   try {
+    console.log('Fetching live data from FMP API for:', symbol);
     const [profile, quote, ratios, history] = await Promise.all([
       safeFetch<any[]>(`${FMP_BASE}/profile/${symbol}?apikey=${FMP_API_KEY}`),
       safeFetch<any[]>(`${FMP_BASE}/quote/${symbol}?apikey=${FMP_API_KEY}`),
@@ -148,8 +153,8 @@ export async function getAssetData(symbol: string): Promise<AssetData> {
     };
     return result;
   } catch (error) {
-    console.warn('FMP fetch failed, falling back to sample asset', error);
-    return normalizeAsset(sampleAsset, symbol);
+    console.warn('FMP fetch failed, falling back to generated mock asset', error);
+    return createMockAsset(symbol);
   }
 }
 
