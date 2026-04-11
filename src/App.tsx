@@ -333,6 +333,9 @@ const App = () => {
         <section className="card">
           <div className="list-header">
             <h3>S&P 500 Conditional Screener</h3>
+            <p style={{ color: '#94a3b8', margin: '0.45rem 0 0.75rem' }}>
+              Live sample from Alpha Vantage. Only the first 5 S&P symbols are shown due to free API rate limits.
+            </p>
             <label>
               <input type="checkbox" checked={show52w} onChange={(e) => setShow52w(e.target.checked)} />
               52w high/low filter
